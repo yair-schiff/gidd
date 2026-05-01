@@ -6,6 +6,7 @@ distributed: true
 distributed_backend: null
 distributed_timeout_minutes: 500
 serialized_model_load: true
+enable_autoresume: true
 
 num_samples: 5000
 budgets: [128, 256, 512, 1024]

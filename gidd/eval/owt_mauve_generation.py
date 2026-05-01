@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import random
+import sys
 import time
 from pathlib import Path
 
@@ -17,6 +18,18 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from gidd import GiddPipeline
 from gidd.utils import parse_dtype, sample_categorical
+
+
+sys.path.append(os.environ.get("SUBMIT_SCRIPTS", "."))
+try:
+    print("Importing AutoResume lib...", flush=True)
+    from userlib.auto_resume import AutoResume
+
+    AutoResume.init()
+    print("Found AutoResume SDK!", flush=True)
+except Exception:
+    AutoResume = None
+    print("Did not find AutoResume SDK!", flush=True)
 
 
 def _model_slug(model_name: str) -> str:
@@ -46,6 +59,15 @@ def _barrier():
 def _log(message: str, rank: int | None = None):
     prefix = f"RANK{rank}: " if rank is not None else ""
     print(f"{prefix}{message}", flush=True)
+
+
+def _maybe_autoresume(args, rank: int, stage: str):
+    if not args.enable_autoresume or AutoResume is None:
+        return
+    if AutoResume.termination_requested():
+        _log(f"AutoResumeHook: requesting resume after {stage}", rank)
+        AutoResume.request_resume({"resumed": True, "stage": stage, "rank": rank})
+        raise SystemExit(0)
 
 
 def _rank_sample_count(total: int, rank: int, world_size: int) -> int:
@@ -312,6 +334,7 @@ def _generate_raw_samples(pipe, args, budget: int, shard_dir: Path, raw_path: Pa
             )
             _append_jsonl(raw_shard_path, batch_texts)
             pbar.update(batch_size)
+            _maybe_autoresume(args, rank, "raw_generation_batch")
 
     _barrier()
     if rank == 0:
@@ -461,6 +484,7 @@ def _self_correct_samples(pipe, raw_texts: list[str], args, budget: int, shard_d
             ]
             _append_jsonl(correction_shard_path, records)
             pbar.update(len(batch_texts))
+            _maybe_autoresume(args, rank, "self_correction_batch")
 
     _barrier()
     if rank == 0:
@@ -539,7 +563,7 @@ def _compute_mauve(args, corrected_texts, features_path: Path, device_id: int):
     return float(results.mauve)
 
 
-def _compute_entropy(texts: list[str], tokenizer, max_length: int, entropies_path: Path):
+def _compute_entropy(texts: list[str], tokenizer, max_length: int, entropies_path: Path, args, rank: int):
     entropies = []
     for text in tqdm.tqdm(texts, desc="Entropy", dynamic_ncols=True):
         tokenized = tokenizer(
@@ -550,6 +574,7 @@ def _compute_entropy(texts: list[str], tokenizer, max_length: int, entropies_pat
         )["input_ids"][0]
         counts = torch.unique(tokenized, return_counts=True, sorted=True)[1]
         entropies.append(torch.special.entr(counts.float() / counts.sum()).sum().item())
+        _maybe_autoresume(args, rank, "entropy")
     _write_json(entropies_path, entropies)
     return {
         "entropy": float(np.mean(entropies)) if entropies else float("nan"),
@@ -611,6 +636,7 @@ def _compute_generative_ppl_local(texts: list[str], args, device: torch.device, 
         total_nll += (nll * loss_mask).sum().item()
         total_acc += (acc * loss_mask).sum().item()
         total_tokens += int(loss_mask.sum().item())
+        _maybe_autoresume(args, rank, "generative_ppl_batch")
 
     del model
     if torch.cuda.is_available():
@@ -772,12 +798,16 @@ def _run_budget(pipe, args, budget: int, dtype: torch.dtype, device: torch.devic
             pipe.tokenizer,
             pipe.config.max_seq_len,
             entropies_path,
+            args,
+            rank,
         )
 
     if args.skip_mauve:
         mauve_score = -1.0
     else:
+        _maybe_autoresume(args, rank, "before_mauve")
         mauve_score = _compute_mauve(args, corrected_texts, reference_features_path, device_id)
+        _maybe_autoresume(args, rank, "after_mauve")
 
     correction_nfes_arr = np.array(correction_nfes, dtype=np.float64)
     metrics = {
