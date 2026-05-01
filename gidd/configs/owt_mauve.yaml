@@ -5,6 +5,7 @@ dtype: bf16
 distributed: true
 distributed_backend: null
 distributed_timeout_minutes: 500
+serialized_model_load: true
 
 num_samples: 5000
 budgets: [128, 256, 512, 1024]
@@ -34,6 +35,13 @@ mauve_batch_size: 1
 mauve_use_float64: false
 skip_mauve: false
 release_model_before_mauve: true
+
+gen_ppl_model_name_or_path: gpt2-large
+gen_ppl_batch_size: 1
+gen_ppl_max_length: 1024
+skip_gen_ppl: false
+
+skip_entropy: false
 
 output_root: outputs/owt_mauve_gidd
 output_dir: null
