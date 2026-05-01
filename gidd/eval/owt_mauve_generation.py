@@ -194,7 +194,7 @@ def _resolve_output_dir(args, budget: int) -> Path:
     return (
         output_root
         / f"model-{_model_slug(args.model_name)}"
-        / f"num_samples-{args.num_samples}"
+        / f"num_samples-{args.num_samples}_temp-{args.correction_temperature}"
         / f"seed-{args.seed}"
         / f"budget-{budget}"
     )
@@ -610,6 +610,9 @@ def _compute_generative_ppl_local(texts: list[str], args, device: torch.device, 
         disable=(rank != 0),
     ):
         xs = texts[start : start + args.gen_ppl_batch_size]
+        xs = [x for x in xs if x.strip()]
+        if not xs:
+            continue
         batch = tokenizer(
             xs,
             padding=True,
@@ -617,6 +620,8 @@ def _compute_generative_ppl_local(texts: list[str], args, device: torch.device, 
             truncation=True,
             max_length=args.gen_ppl_max_length,
         ).to(device)
+        if batch["input_ids"].numel() == 0:
+            continue
         attn_mask = batch["attention_mask"]
         logits = model(
             input_ids=batch["input_ids"],

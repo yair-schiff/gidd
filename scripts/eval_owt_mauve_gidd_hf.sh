@@ -50,6 +50,7 @@ ENABLE_AUTORESUME="${ENABLE_AUTORESUME:-true}"
 OVERWRITE="${OVERWRITE:-false}"
 SKIP_EXISTING_METRICS="${SKIP_EXISTING_METRICS:-true}"
 REFERENCE_FEATURES_PATH="${REFERENCE_FEATURES_PATH:-/share/kuleshov/yzs2/nvidia-collab/human_reference_mauve_featurized.npy}" #${OUTPUT_ROOT}/reference_cache/owt_refs_${MAUVE_FEATURIZE_MODEL}_num_samples-${NUM_SAMPLES}_max_len-${MAUVE_MAX_TEXT_LENGTH}.npy}"
+CORRECTION_TEMPERATURE="${CORRECTION_TEMPERATURE:-0.1}"
 PORT="${PORT:-$((29504 + BUDGET % 1000))}"
 
 if [ -z "${NUM_DEVICES:-}" ]; then
@@ -69,7 +70,9 @@ echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-unset}"
 echo "SLURM_GPUS_ON_NODE=${SLURM_GPUS_ON_NODE:-unset}"
 echo "SLURM_JOB_GPUS=${SLURM_JOB_GPUS:-unset}"
 
-torchrun --nproc_per_node "${NUM_DEVICES}" --master_port="${PORT}" gidd/eval/owt_mauve_generation.py \
+export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
+
+/lustre/fsw/portfolios/coreai/users/obelhasin/miniconda3/envs/gidd/bin/python -m torch.distributed.run --nproc_per_node "${NUM_DEVICES}" --master_port="${PORT}" gidd/eval/owt_mauve_generation.py \
   hydra.output_subdir=null \
   hydra.run.dir="${PWD}" \
   hydra/job_logging=disabled \
@@ -93,4 +96,5 @@ torchrun --nproc_per_node "${NUM_DEVICES}" --master_port="${PORT}" gidd/eval/owt
   gen_ppl_batch_size="${GEN_PPL_BATCH_SIZE}" \
   gen_ppl_max_length="${GEN_PPL_MAX_LENGTH}" \
   skip_gen_ppl="${SKIP_GEN_PPL}" \
-  skip_entropy="${SKIP_ENTROPY}"
+  skip_entropy="${SKIP_ENTROPY}" \
+  correction_temperature="${CORRECTION_TEMPERATURE}"
