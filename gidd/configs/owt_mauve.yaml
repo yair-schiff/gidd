@@ -1,0 +1,41 @@
+model_name: dvruette/gidd-base-p_unif-0.2
+trust_remote_code: true
+compile_step: false
+dtype: bf16
+distributed: true
+distributed_backend: null
+distributed_timeout_minutes: 500
+
+num_samples: 5000
+budgets: [128, 256, 512, 1024]
+budget: null
+batch_size: 8
+seed: 1
+
+correction_temperature: 0.1
+correction_t0: 0.01
+correction_patience: 32
+correction_tokens_per_step: 1
+correction_early_stopping: true
+
+reference_dataset: Skylion007/openwebtext
+reference_subset: null
+reference_split: train[-100000:]
+reference_trust_remote_code: true
+reference_num_samples: ${num_samples}
+reference_cache_dir: outputs/owt_mauve_gidd/reference_cache
+reference_texts_path: null
+reference_features_path: null
+reference_lock_timeout_seconds: 7200
+
+mauve_featurize_model: gpt2-large
+mauve_max_text_length: 1024
+mauve_batch_size: 1
+mauve_use_float64: false
+skip_mauve: false
+release_model_before_mauve: true
+
+output_root: outputs/owt_mauve_gidd
+output_dir: null
+overwrite: false
+skip_existing_metrics: true
