@@ -31,7 +31,7 @@ if [ -z "${BUDGET}" ]; then
   exit 2
 fi
 
-MODEL_NAME="${MODEL_NAME:-dvruette/gidd-base-p_unif-0.2}"
+MODEL_NAME="${MODEL_NAME:-dvruette/gidd-small-p_unif-0.2}"
 NUM_SAMPLES="${NUM_SAMPLES:-5000}"
 BATCH_SIZE="${BATCH_SIZE:-8}"
 SEED="${SEED:-1}"
