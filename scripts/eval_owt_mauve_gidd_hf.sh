@@ -33,7 +33,7 @@ fi
 
 MODEL_NAME="${MODEL_NAME:-dvruette/gidd-small-p_unif-0.2}"
 NUM_SAMPLES="${NUM_SAMPLES:-5000}"
-BATCH_SIZE="${BATCH_SIZE:-8}"
+BATCH_SIZE="${BATCH_SIZE:-1}"
 SEED="${SEED:-1}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-outputs/owt_mauve_gidd}"
 MAUVE_FEATURIZE_MODEL="${MAUVE_FEATURIZE_MODEL:-gpt2-large}"
