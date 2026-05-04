@@ -37,11 +37,11 @@ BATCH_SIZE="${BATCH_SIZE:-1}"
 SEED="${SEED:-1}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-outputs/owt_mauve_gidd}"
 MAUVE_FEATURIZE_MODEL="${MAUVE_FEATURIZE_MODEL:-gpt2-large}"
-MAUVE_MAX_TEXT_LENGTH="${MAUVE_MAX_TEXT_LENGTH:-1024}"
+MAUVE_MAX_TEXT_LENGTH="${MAUVE_MAX_TEXT_LENGTH:-512}"
 SKIP_MAUVE="${SKIP_MAUVE:-false}"
 GEN_PPL_MODEL_NAME="${GEN_PPL_MODEL_NAME:-gpt2-large}"
 GEN_PPL_BATCH_SIZE="${GEN_PPL_BATCH_SIZE:-1}"
-GEN_PPL_MAX_LENGTH="${GEN_PPL_MAX_LENGTH:-1024}"
+GEN_PPL_MAX_LENGTH="${GEN_PPL_MAX_LENGTH:-512}"
 SKIP_GEN_PPL="${SKIP_GEN_PPL:-false}"
 SKIP_ENTROPY="${SKIP_ENTROPY:-false}"
 SERIALIZED_MODEL_LOAD="${SERIALIZED_MODEL_LOAD:-true}"
@@ -49,7 +49,7 @@ DISTRIBUTED_BACKEND="${DISTRIBUTED_BACKEND:-gloo}"
 ENABLE_AUTORESUME="${ENABLE_AUTORESUME:-true}"
 OVERWRITE="${OVERWRITE:-false}"
 SKIP_EXISTING_METRICS="${SKIP_EXISTING_METRICS:-true}"
-REFERENCE_FEATURES_PATH="${REFERENCE_FEATURES_PATH:-/share/kuleshov/yzs2/nvidia-collab/human_reference_mauve_featurized.npy}" #${OUTPUT_ROOT}/reference_cache/owt_refs_${MAUVE_FEATURIZE_MODEL}_num_samples-${NUM_SAMPLES}_max_len-${MAUVE_MAX_TEXT_LENGTH}.npy}"
+REFERENCE_FEATURES_PATH="${REFERENCE_FEATURES_PATH:-}"
 CORRECTION_TEMPERATURE="${CORRECTION_TEMPERATURE:-0.1}"
 PORT="${PORT:-$((29504 + BUDGET % 1000))}"
 
@@ -72,6 +72,11 @@ echo "SLURM_JOB_GPUS=${SLURM_JOB_GPUS:-unset}"
 
 export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
 
+EXTRA_ARGS=()
+if [ -n "${REFERENCE_FEATURES_PATH}" ]; then
+  EXTRA_ARGS+=("reference_features_path=${REFERENCE_FEATURES_PATH}")
+fi
+
 /lustre/fsw/portfolios/coreai/users/obelhasin/miniconda3/envs/gidd/bin/python -m torch.distributed.run --nproc_per_node "${NUM_DEVICES}" --master_port="${PORT}" gidd/eval/owt_mauve_generation.py \
   hydra.output_subdir=null \
   hydra.run.dir="${PWD}" \
@@ -88,7 +93,6 @@ export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
   output_root="${OUTPUT_ROOT}" \
   overwrite="${OVERWRITE}" \
   skip_existing_metrics="${SKIP_EXISTING_METRICS}" \
-  reference_features_path="${REFERENCE_FEATURES_PATH}" \
   mauve_featurize_model="${MAUVE_FEATURIZE_MODEL}" \
   mauve_max_text_length="${MAUVE_MAX_TEXT_LENGTH}" \
   skip_mauve="${SKIP_MAUVE}" \
@@ -97,4 +101,5 @@ export PYTHONPATH="${PWD}:${PYTHONPATH:-}"
   gen_ppl_max_length="${GEN_PPL_MAX_LENGTH}" \
   skip_gen_ppl="${SKIP_GEN_PPL}" \
   skip_entropy="${SKIP_ENTROPY}" \
-  correction_temperature="${CORRECTION_TEMPERATURE}"
+  correction_temperature="${CORRECTION_TEMPERATURE}" \
+  "${EXTRA_ARGS[@]}"

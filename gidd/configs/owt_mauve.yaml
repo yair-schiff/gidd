@@ -31,7 +31,7 @@ reference_features_path: null
 reference_lock_timeout_seconds: 7200
 
 mauve_featurize_model: gpt2-large
-mauve_max_text_length: 1024
+mauve_max_text_length: 512
 mauve_batch_size: 1
 mauve_use_float64: false
 skip_mauve: false
@@ -39,7 +39,7 @@ release_model_before_mauve: true
 
 gen_ppl_model_name_or_path: gpt2-large
 gen_ppl_batch_size: 1
-gen_ppl_max_length: 1024
+gen_ppl_max_length: 512
 skip_gen_ppl: false
 
 skip_entropy: false
